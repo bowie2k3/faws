@@ -1,7 +1,7 @@
 #! env python
 from __future__ import print_function
 from datetime import datetime
-import boto3, os, logging
+import boto3, os
 
 # All variables required to configure job, passed via Lambda envs
 
