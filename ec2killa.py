@@ -1,28 +1,53 @@
-#!/usr/bin/python
-import boto3
+#! env python
+from __future__ import print_function
+from datetime import datetime
+import boto3, os, logging
 
-tagkey = raw_input("Enter tag key: ")
-tagvalue = raw_input("Enter tag value: ")
+# All variables required to configure job, passed via Lambda envs
 
-def ec2RecursiveKilla(tagkey, tagvalue):
-    # When passed a tag key, tag value this will return a list of InstanceIds that were found.
+region = os.environ["region"]
+tagkey = os.environ["tagkey"]
+tagvalue = os.environ["tagvalue"]
+batchsize = int(os.environ["batchsize"])
 
-    ec2client = boto3.client('ec2')
+# boombox terminates 'running' EC2 instances identified by a given tag/tag-key 
+# in a configurable batch size.
 
-    response = ec2client.describe_instances(
+def printClock():
+    now = datetime.now()
+    clock = "%02d:%02d" % (now.hour,now.minute)
+    # print(clock)
+    return clock
+
+def lambda_handler(event, context):
+
+    print("Start Time %s" % printClock())
+    ec2 = boto3.resource('ec2',region_name=region)
+
+    instances = ec2.instances.filter(
         Filters=[
-            {
-                'Name': 'tag:'+tagkey,
-                'Values': [tagvalue]
-            }
+            {'Name': 'tag-key', 'Values': [tagkey]},
+            {'Name': 'tag-value', 'Values': [tagvalue]},
+            {'Name': 'instance-state-name', 'Values': ['running']}
         ]
     )
-    instancelist = []
-    for reservation in (response["Reservations"]):
-        for instance in reservation["Instances"]:
-            instancelist.append(instance["InstanceId"])
-    
-    for InstanceId in range(len(instancelist)):
-        print InstanceId
 
-ec2RecursiveKilla()
+    fullist = []
+
+    for instance in instances:
+        fullist.append(instance.id)
+
+# Nice to have, add rolling status (i.e. instances remaining) 
+# Along with estimation based on time to complete last iteration
+
+    if len(fullist) >= 1:
+        print("Total instances to terminate: %s" % len(fullist))
+        for i in xrange(0, len(fullist), batchsize):
+            batch = fullist[i:i+batchsize]
+            print("Terminating %s instances") % len(batch)
+            ec2.instances.filter(InstanceIds=batch).terminate()
+    elif len(fullist) == 0:
+        return "There are no instances to terminate."
+    
+# change so that it will confirm / count actual # of terminated instances
+    return "All instances terminated"
