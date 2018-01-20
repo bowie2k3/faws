@@ -19,7 +19,7 @@ def printClock():
     # print(clock)
     return clock
 
-def boombox(tagkey, tagvalue):
+def lambda_handler(event, context):
 
     start = printClock()
     print("Start time: %s" % start)
@@ -52,5 +52,3 @@ def boombox(tagkey, tagvalue):
     
 # change so that it will confirm / count actual # of terminated instances
     return "All instances terminated, completed at %s" % printClock()
-
-boombox(tagkey, tagvalue)

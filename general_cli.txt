@@ -1,0 +1,9 @@
+### Some bash
+
+### Returns InstanceIds in a text list based on tagkey and tagvalue
+aws ec2 describe-instances --filter "Name=tag-key,Values=Name" "Name=tag-value,Values=awsr53" --query 'Reservations[].Instances[].[InstanceId]' --output text
+
+### Terminate instances based on above + running state
+aws ec2 terminate-instance --instance-ids $(aws ec2 describe-instances --filter "Name=tag-key,Values=Name" "Name=tag-value,Values=awsr53" "Name=instance-state-name,Values=running" --query 'Reservations[].Instances[].[InstanceId]' --output text)
+
+
